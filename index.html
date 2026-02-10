@@ -3,264 +3,172 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>The Sovereign Exchange</title>
+    <title>The Sovereign Exchange - Master Protocol</title>
+    <link rel="stylesheet" href="style.css">
+    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
     <style>
-        /* --- GLOBAL MECHATRONIC DESIGN --- */
+        /* FINALE MECHATRONIK-KORREKTUREN */
         :root {
-            --bg-color: #0a0e12;
-            --glass: rgba(255, 255, 255, 0.05);
-            --glass-border: rgba(255, 255, 255, 0.1);
             --neon-green: #00ff88;
             --neon-red: #ff4b2b;
-            --neon-gold: #ffcc00;
-            --text: #e0e0e0;
+            --glass-border: rgba(255, 255, 255, 0.1);
         }
 
-        body, html {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-            background-color: var(--bg-color);
-            color: var(--text);
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            overflow: hidden; /* Fester Viewport - Kein Scrollen */
-        }
-
-        /* --- SOVEREIGN VIEWER (UNTERSTE EBENE) --- */
-        #viewer-layer {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 1;
-            background: radial-gradient(circle at center, #1a2a24 0%, #0a0e12 100%);
+        /* 1. Zentrale Button-Ausrichtung */
+        .trading-grid {
             display: flex;
             flex-direction: column;
             align-items: center;
-            padding-top: 60px;
+            gap: 12px;
+            width: 100%;
+            margin-top: 10px;
+            z-index: 20;
         }
 
-        .search-bar-viewer {
-            width: 80%;
-            padding: 10px;
-            background: var(--glass);
-            border: 1px solid var(--glass-border);
-            border-radius: 8px;
-            color: white;
-            text-align: center;
-            margin-bottom: 20px;
+        .main-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            width: 100%;
         }
 
-        /* --- APP INTERFACE LAYER --- */
+        /* 2. Der Sovereign Viewer als tiefstes Fundament */
+        #viewer-matrix {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 38%; /* Deckt das untere Drittel hinter den Buttons ab */
+            background: linear-gradient(to top, rgba(0, 255, 136, 0.07), transparent);
+            border-top: 1px solid var(--glass-border);
+            z-index: 1; 
+            padding: 15px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #block-stream {
+            font-family: 'Courier New', monospace;
+            font-size: 9px;
+            color: rgba(0, 255, 136, 0.4);
+            margin-top: 10px;
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        /* 3. Header & Markt-Suche */
+        header {
+            flex-direction: column;
+            height: auto;
+            padding: 10px 15px;
+            gap: 8px;
+            z-index: 100;
+        }
+
+        .market-search-container {
+            width: 100%;
+        }
+
+        /* UI-Layer über dem Viewer */
         #app-interface {
             position: relative;
             z-index: 10;
-            width: 100%;
             height: 100%;
             display: flex;
             flex-direction: column;
+            pointer-events: none; /* Klicks gehen zum Viewer wenn nötig */
         }
 
-        /* --- HEADER & STATUS --- */
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 15px;
-            background: var(--glass);
-            backdrop-filter: blur(10px);
-            border-bottom: 1px solid var(--glass-border);
-        }
-
-        .status-dot {
-            width: 10px;
-            height: 10px;
-            background-color: var(--neon-green);
-            border-radius: 50%;
-            display: inline-block;
-            box-shadow: 0 0 8px var(--neon-green);
-        }
-
-        /* --- BUTTONS & HAPTIK --- */
-        .haptic-btn {
-            background: var(--glass);
-            border: 1px solid var(--glass-border);
-            padding: 12px 20px;
-            border-radius: 10px;
-            color: white;
-            font-weight: bold;
-            text-transform: uppercase;
-            box-shadow: 4px 4px 0px rgba(0,0,0,0.3);
-            transition: all 0.1s;
-        }
-
-        .haptic-btn:active {
-            transform: translate(2px, 2px);
-            box-shadow: 1px 1px 0px rgba(0,0,0,0.3);
-            background: rgba(255,255,255,0.1);
-        }
-
-        /* --- MAIN SECTIONS (STATISCH) --- */
-        .page-section {
-            display: none;
-            flex: 1;
-            padding: 20px;
-            overflow-y: auto;
-        }
-
-        .active { display: flex; flex-direction: column; }
-
-        /* --- ZENTRALE (TRADING) --- */
-        .asset-switcher {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 15px;
-            overflow-x: auto;
-            padding-bottom: 5px;
-        }
-
-        .chart-placeholder {
-            flex: 1;
-            background: rgba(0,0,0,0.4);
-            border: 1px solid var(--glass-border);
-            border-radius: 15px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 12px;
-            color: var(--glass-border);
-        }
-
-        .action-bar {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            padding-top: 20px;
-        }
-
-        /* --- LOGIN & WALLET --- */
-        .input-bar {
-            width: 100%;
-            background: rgba(0,0,0,0.3);
-            border: 1px inset var(--glass-border);
-            padding: 15px;
-            border-radius: 12px;
-            margin: 10px 0;
-            color: white;
-            box-sizing: border-box;
-        }
-
-        .grid-6 {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 10px;
-            margin-top: 20px;
-        }
-
-        .meta-balken {
-            background: var(--glass);
-            margin: 5px 0;
-            padding: 10px;
-            border-radius: 5px;
-            border-left: 3px solid var(--neon-gold);
-            font-size: 14px;
+        main, header, .haptic-btn, input {
+            pointer-events: auto; /* Buttons & Inputs bleiben klickbar */
         }
     </style>
 </head>
 <body>
 
-    <div id="viewer-layer">
-        <input type="text" class="search-bar-viewer" placeholder="Sovereign Viewer: Suche Hashes, Assets, IDs...">
-        <div id="p2p-flow" style="font-size: 10px; color: var(--glass-border);">POW-STREAM: Validating Blocks...</div>
+    <div id="viewer-matrix">
+        <input type="text" id="viewer-search" class="search-bar-viewer" 
+               placeholder="🛡️ Blockchain-Explorer: Hashes, IDs, Blöcke..." 
+               style="width: 100%; background: rgba(0,0,0,0.5); border: 1px solid var(--neon-green);">
+        
+        <div id="block-stream">
+            [GENESIS]: System initialized...<br>
+            [P2P]: Looking for nodes...<br>
+            [POW]: Validation layer active (0.25% Fee enforced).
+        </div>
     </div>
 
     <div id="app-interface">
         
         <header>
-            <div id="nav-left">
-                <span id="back-btn" onclick="showPage('zentrale')" style="display:none; cursor:pointer;">◀</span>
-                <span id="sovereign-id">ID: 0x...Sovereign</span>
+            <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
+                <div id="nav-left">
+                    <span id="back-btn" onclick="showPage('zentrale')" style="display:none; cursor:pointer; font-size: 18px;">◀</span>
+                    <span id="sovereign-id" style="font-family: monospace; font-size: 11px; color: #00d4ff;">ID: 0x...Sovereign</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span class="status-dot"></span>
+                    <button class="haptic-btn" style="padding: 5px 10px; font-size: 10px;" onclick="showPage('login')">PROFIL-WALLET</button>
+                </div>
             </div>
-            <div>
-                <span class="status-dot"></span>
-                <button class="haptic-btn" style="padding: 5px 10px; font-size: 10px;" onclick="showPage('login')">Profil-Wallet</button>
+
+            <div class="market-search-container">
+                <input type="text" id="market-search" class="input-bar" 
+                       placeholder="🔍 Asset suchen (BTC, AAPL, GOLD...)" 
+                       style="margin: 0; padding: 10px; font-size: 13px;">
             </div>
         </header>
 
         <main id="zentrale" class="page-section active">
             <div class="asset-switcher">
-                <button class="haptic-btn" style="font-size: 10px;">Crypto</button>
-                <button class="haptic-btn" style="font-size: 10px;">Aktien</button>
-                <button class="haptic-btn" style="font-size: 10px;">Rohstoffe</button>
+                <button class="haptic-btn" style="font-size: 10px;" onclick="switchAsset('Crypto')">CRYPTO</button>
+                <button class="haptic-btn" style="font-size: 10px;" onclick="switchAsset('Aktien')">AKTIEN</button>
+                <button class="haptic-btn" style="font-size: 10px;" onclick="switchAsset('Rohstoffe')">ROHSTOFFE</button>
             </div>
             
-            <div class="chart-placeholder">
-                [ ECHTZEIT CHART WEB-SOCKET AREA ]
+            <div id="chart-container" class="chart-placeholder" style="flex: 2; min-height: 250px;">
+                <div id="tradingview_widget"></div>
             </div>
 
-            <div class="action-bar">
-                <button class="haptic-btn" style="background: var(--neon-green); color: black;">BUY</button>
-                <button class="haptic-btn" style="background: var(--neon-red);">SELL</button>
-                <button class="haptic-btn">Einzahlen</button>
-                <button class="haptic-btn">Auszahlen</button>
+            <div class="trading-grid">
+                <div class="main-actions">
+                    <button class="haptic-btn" style="background: var(--neon-green); color: black;" onclick="executeTrade('buy')">BUY</button>
+                    <button class="haptic-btn" style="background: var(--neon-red);" onclick="executeTrade('sell')">SELL</button>
+                </div>
+                <div class="main-actions">
+                    <button class="haptic-btn" onclick="showPage('wallet')">EINZAHLEN</button>
+                    <button class="haptic-btn" onclick="showPage('wallet')">AUSZAHLEN</button>
+                </div>
             </div>
         </main>
 
         <main id="login" class="page-section">
-            <p style="font-size: 12px; text-align: center;">Haben Sie bereits ein Profil? Melden Sie sich hier mit Ihren Phrasen oder Datei-Upload an.</p>
+            <h3 style="text-align: center; color: #00d4ff;">Sovereign Identity</h3>
             <input type="text" class="input-bar" placeholder="Benutzername erstellen">
             <input type="password" class="input-bar" placeholder="Passwort erstellen">
-            <button class="haptic-btn" style="width:100%;" onclick="showPage('wallet')">Sovereign Login</button>
-            
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px;">
-                <button class="haptic-btn" style="font-size: 10px;">Google</button>
-                <button class="haptic-btn" style="font-size: 10px;">GitHub</button>
-                <button class="haptic-btn" style="font-size: 10px;">Microsoft</button>
-                <button class="haptic-btn" style="font-size: 10px;">WalletConnect</button>
-            </div>
+            <button class="haptic-btn" style="width:100%; background: #00d4ff; color: black;" onclick="performLogin()">ANMELDEN & VERANKERN</button>
         </main>
 
         <main id="wallet" class="page-section">
-            <div style="text-align: center;">
-                <h2 id="balance">$ 0.00</h2>
-                <small>Verankerte Wallet: 0x123...abc</small>
+            <div style="text-align: center; margin-bottom: 20px;">
+                <h1 id="balance" style="margin: 0;">$ 0.00</h1>
+                <small id="wallet-addr" style="color: #00d4ff;">Berechne ID...</small>
             </div>
 
-            <div class="grid-6">
-                <button class="haptic-btn" style="font-size: 10px;">Senden</button>
-                <button class="haptic-btn" style="font-size: 10px;">Empfangen</button>
-                <button class="haptic-btn" style="font-size: 10px;">Swap</button>
-                <button class="haptic-btn" style="font-size: 10px;">Einzahlen</button>
-                <button class="haptic-btn" style="font-size: 10px;">Auszahlen</button>
-                <button class="haptic-btn" style="font-size: 10px;">QR-Scan</button>
+            <div class="main-actions" style="grid-template-columns: 1fr 1fr 1fr;">
+                <button class="haptic-btn" style="font-size: 9px;">SENDEN</button>
+                <button class="haptic-btn" style="font-size: 9px;">EMPFANGEN</button>
+                <button class="haptic-btn" style="font-size: 9px;">SWAP</button>
             </div>
 
-            <h4 style="margin-top:30px;">Portfolio / Ledger</h4>
-            <div style="overflow-y: auto; flex: 1;">
-                <div class="meta-balken">Kauf: 0.1 BTC - Validated [PoW]</div>
-                <div class="meta-balken">Swap: ETH/USDT - Validated [PoW]</div>
-            </div>
+            <h4 style="margin-top: 30px; border-bottom: 1px solid var(--glass-border); padding-bottom: 5px;">Portfolio / Ledger</h4>
+            <div id="portfolio-list" style="flex: 1; overflow-y: auto;">
+                </div>
         </main>
 
     </div>
 
-    <script>
-        // STATISCHE NAVIGATION OHNE SERVER
-        function showPage(pageId) {
-            document.querySelectorAll('.page-section').forEach(section => {
-                section.classList.remove('active');
-            });
-            document.getElementById(pageId).classList.add('active');
-
-            // Zurück-Button Logik
-            if(pageId === 'zentrale') {
-                document.getElementById('back-btn').style.display = 'none';
-            } else {
-                document.getElementById('back-btn').style.display = 'inline-block';
-            }
-        }
-    </script>
+    <script src="app.js"></script>
 </body>
 </html>
