@@ -7,11 +7,37 @@
     <link rel="stylesheet" href="style.css">
     <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
     <style>
-        /* FINALE MECHATRONIK-KORREKTUREN */
+        /* --- KRITISCHE FIXES FÜR DIE LOGIK --- */
         :root {
             --neon-green: #00ff88;
             --neon-red: #ff4b2b;
             --glass-border: rgba(255, 255, 255, 0.1);
+            --bg-solid: #0a0e12; /* Blickdichter Hintergrund gegen Überlagerung */
+        }
+
+        /* Verhindert das Durchscheinen der Ebenen */
+        .page-section {
+            display: none; /* Standard: Komplett weg */
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--bg-solid); 
+            flex-direction: column;
+            padding: 20px;
+            box-sizing: border-box;
+            z-index: 50;
+        }
+
+        /* Nur die aktive Seite wird gezeigt */
+        .page-section.active {
+            display: flex;
+        }
+
+        /* Zentrale muss unter dem Header liegen */
+        #zentrale {
+            padding-top: 100px; /* Platz für Header & Suche */
         }
 
         /* 1. Zentrale Button-Ausrichtung */
@@ -22,7 +48,7 @@
             gap: 12px;
             width: 100%;
             margin-top: 10px;
-            z-index: 20;
+            z-index: 60;
         }
 
         .main-actions {
@@ -32,70 +58,61 @@
             width: 100%;
         }
 
-        /* 2. Der Sovereign Viewer als tiefstes Fundament */
+        /* 2. Der Sovereign Viewer als Fundament */
         #viewer-matrix {
             position: fixed;
             bottom: 0;
             left: 0;
             width: 100%;
-            height: 38%; /* Deckt das untere Drittel hinter den Buttons ab */
-            background: linear-gradient(to top, rgba(0, 255, 136, 0.07), transparent);
+            height: 35%; 
+            background: linear-gradient(to top, rgba(0, 255, 136, 0.1), transparent);
             border-top: 1px solid var(--glass-border);
-            z-index: 1; 
+            z-index: 1; /* Ganz unten */
             padding: 15px;
             box-sizing: border-box;
-            display: flex;
-            flex-direction: column;
+            pointer-events: none;
         }
 
         #block-stream {
             font-family: 'Courier New', monospace;
             font-size: 9px;
             color: rgba(0, 255, 136, 0.4);
-            margin-top: 10px;
             overflow: hidden;
-            pointer-events: none;
         }
 
-        /* 3. Header & Markt-Suche */
+        /* 3. Header Fixierung */
         header {
-            flex-direction: column;
-            height: auto;
-            padding: 10px 15px;
-            gap: 8px;
-            z-index: 100;
-        }
-
-        .market-search-container {
+            position: fixed;
+            top: 0;
+            left: 0;
             width: 100%;
-        }
-
-        /* UI-Layer über dem Viewer */
-        #app-interface {
-            position: relative;
-            z-index: 10;
-            height: 100%;
+            background: rgba(10, 14, 18, 0.95);
+            backdrop-filter: blur(10px);
+            z-index: 100;
+            padding: 10px 15px;
             display: flex;
             flex-direction: column;
-            pointer-events: none; /* Klicks gehen zum Viewer wenn nötig */
+            gap: 8px;
+            border-bottom: 1px solid var(--glass-border);
         }
 
-        main, header, .haptic-btn, input {
-            pointer-events: auto; /* Buttons & Inputs bleiben klickbar */
+        .market-search-container { width: 100%; }
+
+        #app-interface {
+            position: relative;
+            height: 100vh;
+            width: 100vw;
         }
+
+        .haptic-btn, input { pointer-events: auto; }
     </style>
 </head>
 <body>
 
     <div id="viewer-matrix">
-        <input type="text" id="viewer-search" class="search-bar-viewer" 
-               placeholder="🛡️ Blockchain-Explorer: Hashes, IDs, Blöcke..." 
-               style="width: 100%; background: rgba(0,0,0,0.5); border: 1px solid var(--neon-green);">
-        
         <div id="block-stream">
             [GENESIS]: System initialized...<br>
-            [P2P]: Looking for nodes...<br>
-            [POW]: Validation layer active (0.25% Fee enforced).
+            [POW]: Validation layer active.
         </div>
     </div>
 
@@ -104,11 +121,11 @@
         <header>
             <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
                 <div id="nav-left">
-                    <span id="back-btn" onclick="showPage('zentrale')" style="display:none; cursor:pointer; font-size: 18px;">◀</span>
+                    <span id="back-btn" onclick="showPage('zentrale')" style="display:none; cursor:pointer; font-size: 18px; color: white;">◀</span>
                     <span id="sovereign-id" style="font-family: monospace; font-size: 11px; color: #00d4ff;">ID: 0x...Sovereign</span>
                 </div>
                 <div style="display: flex; align-items: center; gap: 10px;">
-                    <span class="status-dot"></span>
+                    <div class="status-dot" style="width:8px; height:8px; background: var(--neon-green); border-radius:50%;"></div>
                     <button class="haptic-btn" style="padding: 5px 10px; font-size: 10px;" onclick="showPage('login')">PROFIL-WALLET</button>
                 </div>
             </div>
@@ -116,18 +133,18 @@
             <div class="market-search-container">
                 <input type="text" id="market-search" class="input-bar" 
                        placeholder="🔍 Asset suchen (BTC, AAPL, GOLD...)" 
-                       style="margin: 0; padding: 10px; font-size: 13px;">
+                       style="width: 100%; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: white; padding: 8px;">
             </div>
         </header>
 
         <main id="zentrale" class="page-section active">
-            <div class="asset-switcher">
-                <button class="haptic-btn" style="font-size: 10px;" onclick="switchAsset('Crypto')">CRYPTO</button>
-                <button class="haptic-btn" style="font-size: 10px;" onclick="switchAsset('Aktien')">AKTIEN</button>
-                <button class="haptic-btn" style="font-size: 10px;" onclick="switchAsset('Rohstoffe')">ROHSTOFFE</button>
+            <div class="asset-switcher" style="display: flex; gap: 10px; margin-bottom: 10px;">
+                <button class="haptic-btn" style="font-size: 10px; flex: 1;" onclick="switchAsset('Crypto')">CRYPTO</button>
+                <button class="haptic-btn" style="font-size: 10px; flex: 1;" onclick="switchAsset('Aktien')">AKTIEN</button>
+                <button class="haptic-btn" style="font-size: 10px; flex: 1;" onclick="switchAsset('Rohstoffe')">ROHSTOFFE</button>
             </div>
             
-            <div id="chart-container" class="chart-placeholder" style="flex: 2; min-height: 250px;">
+            <div id="chart-container" class="chart-placeholder" style="flex: 1; min-height: 200px; background: #000; border-radius: 8px;">
                 <div id="tradingview_widget"></div>
             </div>
 
@@ -143,26 +160,27 @@
             </div>
         </main>
 
-        <main id="login" class="page-section">
-            <h3 style="text-align: center; color: #00d4ff;">Sovereign Identity</h3>
-            <input type="text" class="input-bar" placeholder="Benutzername erstellen">
-            <input type="password" class="input-bar" placeholder="Passwort erstellen">
-            <button class="haptic-btn" style="width:100%; background: #00d4ff; color: black;" onclick="performLogin()">ANMELDEN & VERANKERN</button>
+        <main id="login" class="page-section" style="justify-content: center; padding-top: 80px;">
+            <h3 style="text-align: center; color: #00d4ff;">Identity Anchor</h3>
+            <input type="text" class="input-bar" placeholder="Benutzername erstellen" style="margin-bottom: 10px; padding: 15px;">
+            <input type="password" class="input-bar" placeholder="Passwort erstellen" style="margin-bottom: 20px; padding: 15px;">
+            <button class="haptic-btn" style="width:100%; background: #00d4ff; color: black; padding: 15px;" onclick="performLogin()">ANMELDEN & VERANKERN</button>
+            <p style="font-size: 10px; text-align: center; margin-top: 20px; color: gray;">Deine ID wird lokal im RAM berechnet.</p>
         </main>
 
-        <main id="wallet" class="page-section">
+        <main id="wallet" class="page-section" style="padding-top: 80px;">
             <div style="text-align: center; margin-bottom: 20px;">
-                <h1 id="balance" style="margin: 0;">$ 0.00</h1>
-                <small id="wallet-addr" style="color: #00d4ff;">Berechne ID...</small>
+                <h1 id="balance" style="margin: 0; font-size: 40px;">$ 0.00</h1>
+                <small id="wallet-addr" style="color: #00d4ff; font-family: monospace;">Berechne ID...</small>
             </div>
 
-            <div class="main-actions" style="grid-template-columns: 1fr 1fr 1fr;">
+            <div class="main-actions" style="grid-template-columns: 1fr 1fr 1fr; margin-bottom: 20px;">
                 <button class="haptic-btn" style="font-size: 9px;">SENDEN</button>
                 <button class="haptic-btn" style="font-size: 9px;">EMPFANGEN</button>
                 <button class="haptic-btn" style="font-size: 9px;">SWAP</button>
             </div>
 
-            <h4 style="margin-top: 30px; border-bottom: 1px solid var(--glass-border); padding-bottom: 5px;">Portfolio / Ledger</h4>
+            <h4 style="border-bottom: 1px solid var(--glass-border); padding-bottom: 5px;">Sovereign Ledger</h4>
             <div id="portfolio-list" style="flex: 1; overflow-y: auto;">
                 </div>
         </main>
