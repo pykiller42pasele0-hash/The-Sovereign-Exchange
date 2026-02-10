@@ -1,116 +1,121 @@
-/* --- THE SOVEREIGN ENGINE (MASTER) --- */
+/* --- THE SOVEREIGN ENGINE: FINAL PERMUTATION --- */
 
 let sovereignState = {
     isLoggedIn: false,
     username: "",
     walletAddress: "0x" + Math.random().toString(16).slice(2, 10).toUpperCase(),
-    balance: 2500.50,
+    fiatBalance: 2500.00,
+    assetBalances: { "Crypto": 0.0, "Aktien": 0.0, "Rohstoffe": 0.0 },
     currentAsset: "Crypto",
     transactions: []
 };
 
 document.addEventListener('DOMContentLoaded', () => {
     switchAsset('Crypto');
-    startBlockStream();
-    
-    // Such-Logik binden
-    document.getElementById('market-search').addEventListener('input', (e) => {
-        if(e.target.value.length > 2) logToViewer(`MARKET-SEARCH: ${e.target.value.toUpperCase()}`);
-    });
+    startGlobalFeed();
 });
 
-// NAVIGATION (DER TÜRSTEHER)
 function showPage(pageId) {
-    if (pageId === 'wallet' && !sovereignState.isLoggedIn) {
-        pageId = 'login';
-    }
-
-    document.querySelectorAll('.page-section').forEach(s => {
-        s.style.display = "none";
-        s.classList.remove('active');
-    });
-
+    if (pageId === 'wallet' && !sovereignState.isLoggedIn) pageId = 'login';
+    document.querySelectorAll('.page-section').forEach(s => s.style.display = "none");
     const target = document.getElementById(pageId);
-    if (target) {
-        target.style.display = "flex";
-        target.classList.add('active');
-    }
-
+    if (target) target.style.display = "flex";
     document.getElementById('back-btn').style.display = (pageId === 'zentrale') ? 'none' : 'inline-block';
 }
 
-// ASSET-SWITCHER
 function switchAsset(type) {
     sovereignState.currentAsset = type;
-    let symbol = "BINANCE:BTCUSDT";
-    if(type === 'Aktien') symbol = "NASDAQ:AAPL";
-    if(type === 'Rohstoffe') symbol = "TVC:GOLD";
-    if(type === 'Forex') symbol = "FX:EURUSD";
-
+    const symbols = { "Crypto": "BINANCE:BTCUSDT", "Aktien": "NASDAQ:AAPL", "Rohstoffe": "TVC:GOLD" };
+    const units = { "Crypto": "BTC", "Aktien": "AAPL", "Rohstoffe": "GOLD" };
+    
     new TradingView.widget({
-        "autosize": true, "symbol": symbol, "interval": "D", "theme": "dark", "style": "1",
-        "locale": "de", "hide_top_toolbar": true, "container_id": "tradingview_widget"
+        "autosize": true, "symbol": symbols[type], "interval": "D", "theme": "dark", "container_id": "tradingview_widget", "hide_top_toolbar": true
     });
-    logToViewer(`PROTOCOL: Switched to ${type}`);
+    
+    document.getElementById('asset-unit').innerText = units[type];
+    updateUI();
 }
 
-// LOGIN LOGIK
-async function performLogin() {
+function performLogin() {
     const user = document.getElementById('login-user').value;
-    if (user.length < 3) return alert("Identität zu kurz.");
-
+    if (user.length < 3) return alert("ID zu kurz.");
+    
     sovereignState.username = user;
     sovereignState.isLoggedIn = true;
-    
     document.getElementById('sovereign-id').innerText = `ID: ${user.toUpperCase()}`;
     document.getElementById('wallet-addr').innerText = sovereignState.walletAddress;
+    document.getElementById('zentrale-saldos').style.display = "flex";
     
     updateUI();
-    showPage('wallet');
-    logToViewer(`IDENTITY: ${user.toUpperCase()} anchored.`);
+    showPage('zentrale');
 }
 
-// TRADING MIT 0.25% FEE
 function executeTrade(type) {
     if (!sovereignState.isLoggedIn) return showPage('login');
-    
     const amount = 100;
-    const fee = amount * 0.0025; // 0,25% Erzwungen
+    const fee = amount * 0.0025; // 0,25% Fee
     
-    sovereignState.balance -= (amount + fee);
+    if (type === 'buy') {
+        sovereignState.fiatBalance -= (amount + fee);
+        sovereignState.assetBalances[sovereignState.currentAsset] += 0.005; 
+    } else {
+        sovereignState.fiatBalance += (amount - fee);
+        sovereignState.assetBalances[sovereignState.currentAsset] -= 0.005;
+    }
     
-    sovereignState.transactions.unshift({
-        type: type.toUpperCase(),
-        asset: sovereignState.currentAsset,
-        status: "Validated [PoW]",
-        fee: fee.toFixed(4)
-    });
-    
+    addTx(type.toUpperCase(), fee);
     updateUI();
-    logToViewer(`TX-POW: ${type.toUpperCase()} | FEE: ${fee.toFixed(4)} signiert.`);
+}
+
+function initWithdraw() {
+    if (!sovereignState.isLoggedIn) return showPage('login');
+    const addr = prompt("Ziel-Adresse eingeben:");
+    const amount = prompt("Betrag:");
+    if (addr && amount) {
+        const fee = amount * 0.0025;
+        if (confirm(`Auszahlung: ${amount}\nGebühr: ${fee.toFixed(2)}\nBestätigen?`)) {
+            sovereignState.fiatBalance -= (parseFloat(amount) + fee);
+            addTx("WITHDRAW", fee);
+            updateUI();
+        }
+    }
 }
 
 function updateUI() {
-    document.getElementById('balance').innerText = `$ ${sovereignState.balance.toLocaleString('de-DE', {minimumFractionDigits: 2})}`;
+    if (!sovereignState.isLoggedIn) return;
+    const fiat = `$ ${sovereignState.fiatBalance.toFixed(2)}`;
+    document.getElementById('fiat-val').innerText = fiat;
+    document.getElementById('balance').innerText = fiat;
+    document.getElementById('asset-val').innerText = sovereignState.assetBalances[sovereignState.currentAsset].toFixed(4);
+    
     const list = document.getElementById('portfolio-list');
-    list.innerHTML = sovereignState.transactions.map(tx => `
-        <div class="meta-balken" style="background:rgba(255,255,255,0.05); padding:10px; margin-bottom:5px; border-radius:5px; font-size:12px;">
-            <span>${tx.type}: ${tx.asset}</span>
-            <span style="float:right; color:#00ff88;">${tx.status}</span>
+    list.innerHTML = sovereignState.transactions.slice(0, 10).map(tx => `
+        <div style="background:rgba(255,255,255,0.05); padding:8px; margin-bottom:5px; border-radius:4px; font-size:11px;">
+            ${tx.type} | ${tx.asset} | FEE: ${tx.fee} | OK
         </div>
     `).join('');
 }
 
-// VIEWER BLOCK-STREAM
-function startBlockStream() {
-    const stream = document.getElementById('block-stream');
+function addTx(type, fee) {
+    const tx = { type, asset: sovereignState.currentAsset, fee: fee.toFixed(4) };
+    sovereignState.transactions.unshift(tx);
+    logToPrivate(`${type} SUCCESS | FEE: ${tx.fee}`);
+}
+
+function startGlobalFeed() {
+    const stream = document.getElementById('global-stream');
     setInterval(() => {
         const hash = Math.random().toString(16).substring(2, 12).toUpperCase();
-        stream.innerHTML = `<div>[BLOCK-${hash}] VERIFIED | FEE_OK | POW_0.25</div>` + stream.innerHTML.substring(0, 400);
+        stream.innerHTML = `<div>[BLOCK-${hash}] NETWORK_VALIDATED | FEE_0.25%</div>` + stream.innerHTML.substring(0, 500);
     }, 4000);
 }
 
-function logToViewer(msg) {
-    const stream = document.getElementById('block-stream');
-    stream.innerHTML = `<div style="color:#fff; font-weight:bold;">>>> ${msg}</div>` + stream.innerHTML;
+function logToPrivate(msg) {
+    const stream = document.getElementById('private-stream');
+    if(stream) stream.innerHTML = `<div>>>> ${msg}</div>` + stream.innerHTML;
+}
+
+function openSettings() {
+    if (!sovereignState.isLoggedIn) return alert("Bitte erst einloggen.");
+    alert(`SETTINGS:\nID: ${sovereignState.username}\nWallet: ${sovereignState.walletAddress}\nPhrase: [Hidden]`);
 }
