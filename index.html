@@ -16,19 +16,21 @@
         .page-section.active { display: flex; }
         header { position: fixed; top: 0; width: 100%; z-index: 100; background: var(--bg-solid); border-bottom: 1px solid rgba(255,255,255,0.1); }
         
-        /* Saldos in der Zentrale */
         #zentrale-saldos {
             display: none; justify-content: space-between; padding: 10px; 
             background: rgba(255,255,255,0.03); border-radius: 4px; margin: 10px 0;
             font-family: monospace; border-left: 3px solid var(--neon-green);
         }
 
-        /* Viewer Logik */
         .viewer-container {
             margin-top: auto; padding: 10px; background: rgba(0, 255, 136, 0.03);
             border: 1px solid rgba(0, 255, 136, 0.1); border-radius: 8px;
         }
         .block-stream { font-family: monospace; font-size: 9px; height: 80px; overflow-y: auto; margin-top: 5px; }
+        
+        /* Social Button Styling */
+        .social-btn { display: flex; align-items: center; justify-content: flex-start; gap: 10px; padding-left: 15px !important; text-align: left; }
+        .social-btn img { width: 14px; height: 14px; filter: grayscale(1) brightness(2); }
     </style>
 </head>
 <body>
@@ -40,7 +42,7 @@
                 <span id="sovereign-id" style="font-family:monospace; font-size:11px; color:var(--neon-blue);">ID: GAST_MODUS</span>
             </div>
             <div style="display:flex; gap:10px; align-items:center;">
-                <span onclick="openSettings()" style="cursor:pointer; font-size:16px;">⚙️</span>
+                <span id="settings-icon" onclick="openSettings()" style="display:none; cursor:pointer; font-size:16px;">⚙️</span>
                 <button class="haptic-btn" onclick="showPage('login')" style="font-size:10px;">PROFIL-WALLET</button>
             </div>
         </div>
@@ -71,7 +73,10 @@
         </div>
 
         <div class="viewer-container">
-            <h4 style="color:var(--neon-green); margin:0; font-size:10px;">🌐 GLOBAL SOVEREIGN VIEWER</h4>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h4 style="color:var(--neon-green); margin:0; font-size:10px;">🌐 GLOBAL SOVEREIGN VIEWER</h4>
+                <input type="text" id="viewer-internal-search" placeholder="Filter Blocks..." style="background:none; border:none; border-bottom:1px solid var(--neon-green); color:var(--neon-green); font-size:9px; width:80px;">
+            </div>
             <div id="global-stream" class="block-stream" style="color:rgba(0,255,136,0.4);"></div>
         </div>
     </main>
@@ -83,10 +88,10 @@
         <button class="haptic-btn" style="background:var(--neon-blue); color:black; margin-top:10px; width:100%;" onclick="performLogin()">ANMELDEN</button>
         
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:20px;">
-            <button class="haptic-btn" style="font-size:9px;">GOOGLE</button>
-            <button class="haptic-btn" style="font-size:9px;">GITHUB</button>
-            <button class="haptic-btn" style="font-size:9px;">MICROSOFT</button>
-            <button class="haptic-btn" style="font-size:9px;">WALLETCONNECT</button>
+            <button class="haptic-btn social-btn" onclick="socialLogin('google')"><img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"> GOOGLE</button>
+            <button class="haptic-btn social-btn" onclick="socialLogin('github')"><img src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"> GITHUB</button>
+            <button class="haptic-btn social-btn" onclick="socialLogin('microsoft')"><img src="https://upload.wikimedia.org/wikipedia/commons/4/44/Microsoft_logo.svg"> MICROSOFT</button>
+            <button class="haptic-btn social-btn" onclick="socialLogin('walletconnect')"><img src="https://raw.githubusercontent.com/WalletConnect/walletconnect-assets/master/Logo/Blue%20(Default)/Logo.svg"> WALLETCONNECT</button>
         </div>
     </main>
 
