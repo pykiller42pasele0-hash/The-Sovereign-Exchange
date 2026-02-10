@@ -1,0 +1,202 @@
+/* --- SOVEREIGN EXCHANGE MASTER STYLES --- */
+
+:root {
+    --bg-dark: #05070a;
+    --glass-bg: rgba(255, 255, 255, 0.03);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --neon-green: #00ff88;
+    --neon-red: #ff4b2b;
+    --neon-gold: #ffcc00;
+    --neon-blue: #00d4ff;
+    --text-main: #e0e6ed;
+    --text-dim: #8892b0;
+    --haptic-shadow: 4px 4px 10px rgba(0, 0, 0, 0.5);
+    --inset-shadow: inset 2px 2px 5px rgba(0, 0, 0, 0.8);
+}
+
+/* --- BASIS & VIEWPORT --- */
+body, html {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    background-color: var(--bg-dark);
+    color: var(--text-main);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    overflow: hidden;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* --- DER SOVEREIGN VIEWER (TIEFEN-EBENE) --- */
+#viewer-layer {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    background: radial-gradient(circle at 50% 50%, #101a24 0%, #05070a 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding-top: 80px;
+}
+
+.search-bar-viewer {
+    width: 85%;
+    max-width: 500px;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    padding: 12px;
+    color: var(--neon-gold);
+    text-align: center;
+    backdrop-filter: blur(5px);
+    outline: none;
+    font-family: monospace;
+    transition: border 0.3s;
+}
+
+.search-bar-viewer:focus {
+    border: 1px solid var(--neon-gold);
+}
+
+/* --- HEADER NAVIGATION --- */
+header {
+    position: relative;
+    z-index: 100;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    background: rgba(10, 14, 18, 0.8);
+    backdrop-filter: blur(15px);
+    border-bottom: 1px solid var(--glass-border);
+}
+
+#sovereign-id {
+    font-size: 11px;
+    font-family: monospace;
+    color: var(--neon-blue);
+    letter-spacing: 1px;
+}
+
+/* --- HAPTISCHE BUTTONS (MECHATRONIK) --- */
+.haptic-btn {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    color: white;
+    padding: 12px;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    cursor: pointer;
+    box-shadow: var(--haptic-shadow);
+    transition: transform 0.05s, box-shadow 0.05s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+.haptic-btn:active {
+    transform: scale(0.97) translate(1px, 1px);
+    box-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+    background: rgba(255,255,255,0.08);
+}
+
+/* --- EINGABE-BALKEN --- */
+.input-bar {
+    width: 100%;
+    background: #000;
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--inset-shadow);
+    padding: 16px;
+    border-radius: 14px;
+    margin: 8px 0;
+    color: var(--neon-green);
+    font-family: monospace;
+    font-size: 16px;
+    box-sizing: border-box;
+    outline: none;
+}
+
+/* --- SEKTIONEN & ANIMATION --- */
+.page-section {
+    position: absolute;
+    top: 65px;
+    bottom: 0;
+    width: 100%;
+    display: none;
+    flex-direction: column;
+    padding: 20px;
+    box-sizing: border-box;
+    z-index: 50;
+    background: transparent;
+    animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.active { display: flex; }
+
+/* --- TRADING INTERFACE --- */
+.asset-switcher {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.chart-placeholder {
+    flex: 1;
+    background: rgba(0, 0, 0, 0.6);
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    box-shadow: var(--inset-shadow);
+}
+
+/* --- WALLET PORTFOLIO BLÖCKE --- */
+.meta-balken {
+    background: linear-gradient(90deg, rgba(255,204,0,0.1) 0%, rgba(255,255,255,0.03) 100%);
+    border: 1px solid var(--glass-border);
+    border-left: 4px solid var(--neon-gold);
+    margin: 8px 0;
+    padding: 15px;
+    border-radius: 8px;
+    font-size: 13px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* --- SPEZIAL FARBEN --- */
+.btn-buy { background: rgba(0, 255, 136, 0.15); border-color: var(--neon-green); color: var(--neon-green); }
+.btn-sell { background: rgba(255, 75, 43, 0.15); border-color: var(--neon-red); color: var(--neon-red); }
+.btn-gold { border-color: var(--neon-gold); color: var(--neon-gold); }
+
+/* --- STATUS DOT BLINKEN --- */
+.status-dot {
+    width: 8px;
+    height: 8px;
+    background: var(--neon-green);
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 8px;
+    box-shadow: 0 0 10px var(--neon-green);
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.4; }
+    100% { opacity: 1; }
+}
