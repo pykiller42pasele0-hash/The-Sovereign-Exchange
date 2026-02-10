@@ -15,10 +15,15 @@ let sovereignState = {
 // 2. INITIALISIERUNG & START
 document.addEventListener('DOMContentLoaded', () => {
     console.log("Sovereign Engine: Master-Protocol Active.");
-    updateUI();
-    startBlockStream(); // Startet die Hintergrund-Matrix
     
-    // Initialer Chart-Load (Bitcoin)
+    // Initialer Zustand: Alles außer Zentrale hart verstecken
+    const sections = document.querySelectorAll('.page-section');
+    sections.forEach(s => s.style.display = "none");
+    document.getElementById('zentrale').style.display = "flex";
+    
+    updateUI();
+    startBlockStream(); 
+    
     setTimeout(() => { switchAsset('Crypto'); }, 500);
 
     // Event-Listener für die Suchleisten
@@ -26,24 +31,35 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('viewer-search').addEventListener('input', (e) => handleViewerSearch(e.target.value));
 });
 
-// 3. NAVIGATION & UI-SWITCHER
+// 3. NAVIGATION (DER TÜRSTEHER)
 function showPage(pageId) {
+    // Falls Wallet ohne Login aufgerufen wird -> Umleitung zu Login
     if (pageId === 'wallet' && !sovereignState.isLoggedIn) {
         pageId = 'login';
     }
 
-    document.querySelectorAll('.page-section').forEach(section => {
+    // Alle Sektionen deaktivieren und physisch verstecken
+    const sections = document.querySelectorAll('.page-section');
+    sections.forEach(section => {
         section.classList.remove('active');
+        section.style.display = "none"; 
     });
 
+    // Zielseite aktivieren
     const targetPage = document.getElementById(pageId);
-    if (targetPage) targetPage.classList.add('active');
+    if (targetPage) {
+        targetPage.classList.add('active');
+        targetPage.style.display = "flex"; // Erzwingt Neudarstellung
+    }
 
+    // Zurück-Button Logik
     const backBtn = document.getElementById('back-btn');
-    backBtn.style.display = (pageId === 'zentrale') ? 'none' : 'inline-block';
+    if (backBtn) {
+        backBtn.style.display = (pageId === 'zentrale') ? 'none' : 'inline-block';
+    }
 }
 
-// 4. LIVE-CHART LOGIK (TradingView Engine)
+// 4. LIVE-CHART LOGIK
 function switchAsset(type) {
     sovereignState.currentAsset = type;
     let symbol = "BINANCE:BTCUSDT";
@@ -65,34 +81,40 @@ function switchAsset(type) {
         "container_id": "tradingview_widget"
     });
 
-    logToViewer(`MARKET-FEED: Switched to ${type} [${symbol}]`);
+    logToViewer(`MARKET-FEED: Switched to ${type}`);
 }
 
 // 5. LOGIN & IDENTITÄTS-VERANKERUNG
 async function performLogin() {
-    const userIn = document.querySelector('input[placeholder*="Benutzername"]').value;
-    const passIn = document.querySelector('input[placeholder*="Passwort"]').value;
+    // Selektoren präzisiert für Login-Main
+    const userIn = document.querySelector('#login input[placeholder*="Benutzername"]').value;
+    const passIn = document.querySelector('#login input[placeholder*="Passwort"]').value;
 
     if (userIn.length < 3 || passIn.length < 3) {
-        alert("Zugangsdaten zu kurz für 256-bit Verankerung.");
+        alert("Zugangsdaten zu kurz für Identitäts-Anker.");
         return;
     }
 
     sovereignState.username = userIn;
     sovereignState.isLoggedIn = true;
-    sovereignState.balance = 2500.75; // Demo-Saldo
+    sovereignState.balance = 2500.75; 
 
-    document.getElementById('sovereign-id').innerText = `ID: ${userIn.toUpperCase()}_${sovereignState.walletAddress.slice(0,6)}`;
+    // UI Beschriftung aktualisieren
+    document.getElementById('sovereign-id').innerText = `ID: ${userIn.toUpperCase()}`;
     document.getElementById('wallet-addr').innerText = sovereignState.walletAddress;
 
     logToViewer(`IDENTITY: Anchored ${userIn.toUpperCase()} to ${sovereignState.walletAddress}`);
-    showPage('wallet');
+    
     updateUI();
+    showPage('wallet'); // Jetzt erst Wallet freischalten
 }
 
-// 6. TRADING & GEBÜHREN (0.25% Erzwungen)
+// 6. TRADING
 function executeTrade(type) {
-    if (!sovereignState.isLoggedIn) { showPage('login'); return; }
+    if (!sovereignState.isLoggedIn) { 
+        showPage('login'); 
+        return; 
+    }
 
     const fee = 0.0025;
     const amount = 100.00;
@@ -108,36 +130,34 @@ function executeTrade(type) {
     sovereignState.transactions.unshift(newTx);
     sovereignState.balance -= (amount + feeAmount);
 
-    logToViewer(`TX-POW: ${type.toUpperCase()} executed. Fee: ${feeAmount.toFixed(4)} deducted.`);
+    logToViewer(`TX-POW: ${type.toUpperCase()} - Fee: ${feeAmount.toFixed(4)}`);
     updateUI();
 }
 
-// 7. VIEWER-MATRIX (BLOCK-STREAM)
+// 7. VIEWER-MATRIX
 function startBlockStream() {
     const stream = document.getElementById('block-stream');
     setInterval(() => {
-        const hash = Math.random().toString(16).substring(2, 15);
-        const blockInfo = `<div>[BLOCK-${hash.toUpperCase()}] VERIFIED | FEE_SIG: OK | POW_DIFF: 0.25</div>`;
-        stream.innerHTML = blockInfo + stream.innerHTML.substring(0, 800);
+        const hash = Math.random().toString(16).substring(2, 10).toUpperCase();
+        const blockInfo = `<div>[BLOCK-${hash}] VERIFIED | POW_DIFF: 0.25</div>`;
+        stream.innerHTML = blockInfo + stream.innerHTML.substring(0, 500);
     }, 4000);
 }
 
 function logToViewer(msg) {
     const stream = document.getElementById('block-stream');
-    stream.innerHTML = `<div style="color: #fff; font-weight: bold;">>>> ${msg}</div>` + stream.innerHTML;
-}
-
-// 8. DOPPEL-SUCHE LOGIK
-function handleMarketSearch(val) {
-    // In einer echten Umgebung würde dies die TradingView Symbole filtern
-    if(val.length > 2) {
-        logToViewer(`SEARCH-MARKET: Filtering for ${val.toUpperCase()}...`);
+    if(stream) {
+        stream.innerHTML = `<div style="color: #fff; font-weight: bold;">>>> ${msg}</div>` + stream.innerHTML;
     }
 }
 
+// 8. SUCHE
+function handleMarketSearch(val) {
+    if(val.length > 2) logToViewer(`SEARCH: Market filter active for ${val.toUpperCase()}`);
+}
+
 function handleViewerSearch(val) {
-    // Filtert das Portfolio/Ledger im Viewer-Kontext
-    logToViewer(`SEARCH-BLOCKS: Locating Hash ${val}...`);
+    if(val.length > 2) logToViewer(`SEARCH: Locating Hash ${val.toUpperCase()}`);
 }
 
 // 9. UI-SYNCHRONISATION
@@ -148,9 +168,9 @@ function updateUI() {
     const portfolioContainer = document.getElementById('portfolio-list');
     if (portfolioContainer) {
         portfolioContainer.innerHTML = sovereignState.transactions.map(tx => `
-            <div class="meta-balken" style="cursor:pointer;" onclick="logToViewer('TX-DETAILS: ${tx.asset} validated via PoW')">
+            <div class="meta-balken" style="background: rgba(255,255,255,0.05); padding: 10px; margin: 5px 0; border-radius: 5px; border-left: 3px solid #00d4ff;">
                 <span>${tx.type}: ${tx.asset}</span>
-                <span style="color: #ffcc00; font-size: 10px;">${tx.status}</span>
+                <span style="float: right; color: #ffcc00; font-size: 10px;">${tx.status}</span>
             </div>
         `).join('');
     }
