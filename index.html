@@ -7,65 +7,45 @@
     <link rel="stylesheet" href="style.css">
     <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
     <style>
-        /* HART CODIERTE MECHATRONIK-LOGIK */
-        :root { --bg-solid: #0a0e12; --neon-blue: #00d4ff; }
-
+        :root { --bg-solid: #0a0e12; --neon-blue: #00d4ff; --neon-green: #00ff88; }
         .page-section {
-            display: none; 
-            position: fixed; 
-            top: 110px; /* Platz für Header & Markt-Suche */
-            left: 0;
-            width: 100%;
-            height: calc(100% - 110px);
-            background: var(--bg-solid) !important; 
-            z-index: 50;
-            flex-direction: column;
-            padding: 15px;
-            box-sizing: border-box;
-            overflow-y: auto;
+            display: none; position: fixed; top: 110px; left: 0; width: 100%;
+            height: calc(100% - 110px); background: var(--bg-solid) !important; 
+            z-index: 50; flex-direction: column; padding: 15px; box-sizing: border-box; overflow-y: auto;
         }
         .page-section.active { display: flex; }
-
-        #viewer-matrix {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: 35%;
-            z-index: 1; /* Unterste Ebene */
-            background: linear-gradient(to top, rgba(0, 255, 136, 0.05), transparent);
-            padding: 10px;
-            pointer-events: none;
-        }
+        header { position: fixed; top: 0; width: 100%; z-index: 100; background: var(--bg-solid); border-bottom: 1px solid rgba(255,255,255,0.1); }
         
-        header {
-            position: fixed;
-            top: 0;
-            width: 100%;
-            z-index: 100;
-            background: var(--bg-solid);
-            border-bottom: 1px solid rgba(255,255,255,0.1);
+        /* Saldos in der Zentrale */
+        #zentrale-saldos {
+            display: none; justify-content: space-between; padding: 10px; 
+            background: rgba(255,255,255,0.03); border-radius: 4px; margin: 10px 0;
+            font-family: monospace; border-left: 3px solid var(--neon-green);
         }
+
+        /* Viewer Logik */
+        .viewer-container {
+            margin-top: auto; padding: 10px; background: rgba(0, 255, 136, 0.03);
+            border: 1px solid rgba(0, 255, 136, 0.1); border-radius: 8px;
+        }
+        .block-stream { font-family: monospace; font-size: 9px; height: 80px; overflow-y: auto; margin-top: 5px; }
     </style>
 </head>
 <body>
-
-    <div id="viewer-matrix">
-        <input type="text" id="viewer-search" placeholder="🛡️ Blockchain-Explorer Suche..." 
-               style="width:90%; background:rgba(0,0,0,0.6); border:1px solid #00ff88; color:#00ff88; pointer-events:auto; margin-bottom:5px;">
-        <div id="block-stream" style="font-family:monospace; font-size:9px; color:rgba(0,255,136,0.3);"></div>
-    </div>
 
     <header>
         <div style="display: flex; justify-content: space-between; padding: 10px 15px; align-items: center;">
             <div style="display:flex; align-items:center; gap:10px;">
                 <span id="back-btn" onclick="showPage('zentrale')" style="display:none; cursor:pointer;">◀</span>
-                <span id="sovereign-id" style="font-family:monospace; font-size:11px; color:var(--neon-blue);">ID: 0x...Sovereign</span>
+                <span id="sovereign-id" style="font-family:monospace; font-size:11px; color:var(--neon-blue);">ID: GAST_MODUS</span>
             </div>
-            <button class="haptic-btn" onclick="showPage('login')" style="font-size:10px;">PROFIL-WALLET</button>
+            <div style="display:flex; gap:10px; align-items:center;">
+                <span onclick="openSettings()" style="cursor:pointer; font-size:16px;">⚙️</span>
+                <button class="haptic-btn" onclick="showPage('login')" style="font-size:10px;">PROFIL-WALLET</button>
+            </div>
         </div>
         <div style="padding: 0 15px 10px;">
-            <input type="text" id="market-search" class="input-bar" placeholder="🔍 Asset suchen (BTC, AAPL...)">
+            <input type="text" id="market-search" class="input-bar" placeholder="🔍 Globaler Explorer (Asset, ID, Hash)">
         </div>
     </header>
 
@@ -74,28 +54,39 @@
             <button class="haptic-btn" style="flex:1; font-size:9px;" onclick="switchAsset('Crypto')">CRYPTO</button>
             <button class="haptic-btn" style="flex:1; font-size:9px;" onclick="switchAsset('Aktien')">AKTIEN</button>
             <button class="haptic-btn" style="flex:1; font-size:9px;" onclick="switchAsset('Rohstoffe')">ROHSTOFFE</button>
-            <button class="haptic-btn" style="flex:1; font-size:9px;" onclick="switchAsset('Forex')">FOREX</button>
         </div>
-        <div id="tradingview_widget" style="flex:1; min-height:220px; border-radius:8px; overflow:hidden;"></div>
+
+        <div id="tradingview_widget" style="height:200px; border-radius:8px; overflow:hidden;"></div>
         
-        <div class="trading-grid" style="margin-top:15px; z-index:60;">
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-                <button class="haptic-btn" style="background:#00ff88; color:black; font-weight:bold;" onclick="executeTrade('buy')">BUY</button>
-                <button class="haptic-btn" style="background:#ff4b2b; font-weight:bold;" onclick="executeTrade('sell')">SELL</button>
-                <button class="haptic-btn" onclick="showPage('wallet')">EINZAHLEN</button>
-                <button class="haptic-btn" onclick="showPage('wallet')">AUSZAHLEN</button>
-            </div>
+        <div id="zentrale-saldos">
+            <div style="color:#aaa;">FIAT: <span id="fiat-val" style="color:white;">$ 0.00</span></div>
+            <div style="color:#aaa;">HOLD: <span id="asset-val" style="color:var(--neon-green);">0.00</span> <span id="asset-unit">UNIT</span></div>
+        </div>
+
+        <div class="trading-grid" style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-top:10px;">
+            <button class="haptic-btn" style="background:var(--neon-green); color:black; font-weight:bold;" onclick="executeTrade('buy')">BUY</button>
+            <button class="haptic-btn" style="background:#ff4b2b; font-weight:bold;" onclick="executeTrade('sell')">SELL</button>
+            <button class="haptic-btn" onclick="showPage('wallet')">EINZAHLEN</button>
+            <button class="haptic-btn" onclick="initWithdraw()">AUSZAHLEN</button>
+        </div>
+
+        <div class="viewer-container">
+            <h4 style="color:var(--neon-green); margin:0; font-size:10px;">🌐 GLOBAL SOVEREIGN VIEWER</h4>
+            <div id="global-stream" class="block-stream" style="color:rgba(0,255,136,0.4);"></div>
         </div>
     </main>
 
-    <main id="login" class="page-section" style="justify-content:center;">
-        <h3 style="text-align:center; color:var(--neon-blue);">Identity Anchor</h3>
-        <input type="text" id="login-user" class="input-bar" placeholder="Benutzername erstellen">
-        <input type="password" id="login-pass" class="input-bar" placeholder="Passwort erstellen">
-        <button class="haptic-btn" style="background:var(--neon-blue); color:black; margin-top:10px;" onclick="performLogin()">ANMELDEN & VERANKERN</button>
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:5px; margin-top:20px;">
-            <button class="haptic-btn" style="font-size:8px;">GITHUB</button>
-            <button class="haptic-btn" style="font-size:8px;">GOOGLE</button>
+    <main id="login" class="page-section" style="justify-content:center; text-align:center;">
+        <h3 style="color:var(--neon-blue);">Identity Anchor</h3>
+        <input type="text" id="login-user" class="input-bar" placeholder="Benutzername / Phrase">
+        <input type="password" id="login-pass" class="input-bar" placeholder="Passwort">
+        <button class="haptic-btn" style="background:var(--neon-blue); color:black; margin-top:10px; width:100%;" onclick="performLogin()">ANMELDEN</button>
+        
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:20px;">
+            <button class="haptic-btn" style="font-size:9px;">GOOGLE</button>
+            <button class="haptic-btn" style="font-size:9px;">GITHUB</button>
+            <button class="haptic-btn" style="font-size:9px;">MICROSOFT</button>
+            <button class="haptic-btn" style="font-size:9px;">WALLETCONNECT</button>
         </div>
     </main>
 
@@ -104,18 +95,21 @@
             <h1 id="balance" style="margin:0; font-size:32px;">$ 0.00</h1>
             <small id="wallet-addr" style="color:var(--neon-blue); font-family:monospace;"></small>
         </div>
-        
-        <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:8px; margin-top:20px;">
+        <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:8px; margin-top:15px;">
             <button class="haptic-btn" style="font-size:9px;">SENDEN</button>
             <button class="haptic-btn" style="font-size:9px;">EMPFANGEN</button>
             <button class="haptic-btn" style="font-size:9px;">SWAP</button>
-            <button class="haptic-btn" style="font-size:9px;">EINZAHLEN</button>
-            <button class="haptic-btn" style="font-size:9px;">AUSZAHLEN</button>
+            <button class="haptic-btn" style="font-size:9px;" onclick="showPage('zentrale')">EINZAHLEN</button>
+            <button class="haptic-btn" style="font-size:9px;" onclick="initWithdraw()">AUSZAHLEN</button>
             <button class="haptic-btn" style="font-size:9px;">QR-SCAN</button>
         </div>
 
-        <h4 style="margin-top:25px; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:5px;">Sovereign Ledger</h4>
+        <h4 style="margin-top:20px; border-bottom:1px solid #333; font-size:11px;">MY PRIVATE LEDGER</h4>
         <div id="portfolio-list" style="flex:1;"></div>
+
+        <div class="viewer-container" style="background:rgba(0,212,255,0.03); border-color:var(--neon-blue);">
+            <div id="private-stream" class="block-stream" style="color:rgba(0,212,255,0.4);"></div>
+        </div>
     </main>
 
     <script src="app.js"></script>
