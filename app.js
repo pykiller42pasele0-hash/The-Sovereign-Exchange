@@ -1,177 +1,116 @@
-/* --- THE SOVEREIGN ENGINE (MASTER LOGIC) --- */
+/* --- THE SOVEREIGN ENGINE (MASTER) --- */
 
-// 1. STATE MANAGEMENT (RAM-Only)
 let sovereignState = {
     isLoggedIn: false,
     username: "",
     walletAddress: "0x" + Math.random().toString(16).slice(2, 10).toUpperCase(),
-    balance: 0.00,
+    balance: 2500.50,
     currentAsset: "Crypto",
-    transactions: [
-        { type: "SYSTEM", asset: "INIT", status: "Validated [PoW]", time: "Genesis" }
-    ]
+    transactions: []
 };
 
-// 2. INITIALISIERUNG & START
 document.addEventListener('DOMContentLoaded', () => {
-    console.log("Sovereign Engine: Master-Protocol Active.");
+    switchAsset('Crypto');
+    startBlockStream();
     
-    // Initialer Zustand: Alles außer Zentrale hart verstecken
-    const sections = document.querySelectorAll('.page-section');
-    sections.forEach(s => s.style.display = "none");
-    document.getElementById('zentrale').style.display = "flex";
-    
-    updateUI();
-    startBlockStream(); 
-    
-    setTimeout(() => { switchAsset('Crypto'); }, 500);
-
-    // Event-Listener für die Suchleisten
-    document.getElementById('market-search').addEventListener('input', (e) => handleMarketSearch(e.target.value));
-    document.getElementById('viewer-search').addEventListener('input', (e) => handleViewerSearch(e.target.value));
+    // Such-Logik binden
+    document.getElementById('market-search').addEventListener('input', (e) => {
+        if(e.target.value.length > 2) logToViewer(`MARKET-SEARCH: ${e.target.value.toUpperCase()}`);
+    });
 });
 
-// 3. NAVIGATION (DER TÜRSTEHER)
+// NAVIGATION (DER TÜRSTEHER)
 function showPage(pageId) {
-    // Falls Wallet ohne Login aufgerufen wird -> Umleitung zu Login
     if (pageId === 'wallet' && !sovereignState.isLoggedIn) {
         pageId = 'login';
     }
 
-    // Alle Sektionen deaktivieren und physisch verstecken
-    const sections = document.querySelectorAll('.page-section');
-    sections.forEach(section => {
-        section.classList.remove('active');
-        section.style.display = "none"; 
+    document.querySelectorAll('.page-section').forEach(s => {
+        s.style.display = "none";
+        s.classList.remove('active');
     });
 
-    // Zielseite aktivieren
-    const targetPage = document.getElementById(pageId);
-    if (targetPage) {
-        targetPage.classList.add('active');
-        targetPage.style.display = "flex"; // Erzwingt Neudarstellung
+    const target = document.getElementById(pageId);
+    if (target) {
+        target.style.display = "flex";
+        target.classList.add('active');
     }
 
-    // Zurück-Button Logik
-    const backBtn = document.getElementById('back-btn');
-    if (backBtn) {
-        backBtn.style.display = (pageId === 'zentrale') ? 'none' : 'inline-block';
-    }
+    document.getElementById('back-btn').style.display = (pageId === 'zentrale') ? 'none' : 'inline-block';
 }
 
-// 4. LIVE-CHART LOGIK
+// ASSET-SWITCHER
 function switchAsset(type) {
     sovereignState.currentAsset = type;
     let symbol = "BINANCE:BTCUSDT";
-
     if(type === 'Aktien') symbol = "NASDAQ:AAPL";
     if(type === 'Rohstoffe') symbol = "TVC:GOLD";
     if(type === 'Forex') symbol = "FX:EURUSD";
 
     new TradingView.widget({
-        "autosize": true,
-        "symbol": symbol,
-        "interval": "D",
-        "timezone": "Etc/UTC",
-        "theme": "dark",
-        "style": "1",
-        "locale": "de",
-        "enable_publishing": false,
-        "hide_top_toolbar": true,
-        "container_id": "tradingview_widget"
+        "autosize": true, "symbol": symbol, "interval": "D", "theme": "dark", "style": "1",
+        "locale": "de", "hide_top_toolbar": true, "container_id": "tradingview_widget"
     });
-
-    logToViewer(`MARKET-FEED: Switched to ${type}`);
+    logToViewer(`PROTOCOL: Switched to ${type}`);
 }
 
-// 5. LOGIN & IDENTITÄTS-VERANKERUNG
+// LOGIN LOGIK
 async function performLogin() {
-    // Selektoren präzisiert für Login-Main
-    const userIn = document.querySelector('#login input[placeholder*="Benutzername"]').value;
-    const passIn = document.querySelector('#login input[placeholder*="Passwort"]').value;
+    const user = document.getElementById('login-user').value;
+    if (user.length < 3) return alert("Identität zu kurz.");
 
-    if (userIn.length < 3 || passIn.length < 3) {
-        alert("Zugangsdaten zu kurz für Identitäts-Anker.");
-        return;
-    }
-
-    sovereignState.username = userIn;
+    sovereignState.username = user;
     sovereignState.isLoggedIn = true;
-    sovereignState.balance = 2500.75; 
-
-    // UI Beschriftung aktualisieren
-    document.getElementById('sovereign-id').innerText = `ID: ${userIn.toUpperCase()}`;
+    
+    document.getElementById('sovereign-id').innerText = `ID: ${user.toUpperCase()}`;
     document.getElementById('wallet-addr').innerText = sovereignState.walletAddress;
-
-    logToViewer(`IDENTITY: Anchored ${userIn.toUpperCase()} to ${sovereignState.walletAddress}`);
     
     updateUI();
-    showPage('wallet'); // Jetzt erst Wallet freischalten
+    showPage('wallet');
+    logToViewer(`IDENTITY: ${user.toUpperCase()} anchored.`);
 }
 
-// 6. TRADING
+// TRADING MIT 0.25% FEE
 function executeTrade(type) {
-    if (!sovereignState.isLoggedIn) { 
-        showPage('login'); 
-        return; 
-    }
-
-    const fee = 0.0025;
-    const amount = 100.00;
-    const feeAmount = amount * fee;
-
-    const newTx = {
+    if (!sovereignState.isLoggedIn) return showPage('login');
+    
+    const amount = 100;
+    const fee = amount * 0.0025; // 0,25% Erzwungen
+    
+    sovereignState.balance -= (amount + fee);
+    
+    sovereignState.transactions.unshift({
         type: type.toUpperCase(),
         asset: sovereignState.currentAsset,
         status: "Validated [PoW]",
-        time: new Date().toLocaleTimeString()
-    };
-
-    sovereignState.transactions.unshift(newTx);
-    sovereignState.balance -= (amount + feeAmount);
-
-    logToViewer(`TX-POW: ${type.toUpperCase()} - Fee: ${feeAmount.toFixed(4)}`);
+        fee: fee.toFixed(4)
+    });
+    
     updateUI();
+    logToViewer(`TX-POW: ${type.toUpperCase()} | FEE: ${fee.toFixed(4)} signiert.`);
 }
 
-// 7. VIEWER-MATRIX
+function updateUI() {
+    document.getElementById('balance').innerText = `$ ${sovereignState.balance.toLocaleString('de-DE', {minimumFractionDigits: 2})}`;
+    const list = document.getElementById('portfolio-list');
+    list.innerHTML = sovereignState.transactions.map(tx => `
+        <div class="meta-balken" style="background:rgba(255,255,255,0.05); padding:10px; margin-bottom:5px; border-radius:5px; font-size:12px;">
+            <span>${tx.type}: ${tx.asset}</span>
+            <span style="float:right; color:#00ff88;">${tx.status}</span>
+        </div>
+    `).join('');
+}
+
+// VIEWER BLOCK-STREAM
 function startBlockStream() {
     const stream = document.getElementById('block-stream');
     setInterval(() => {
-        const hash = Math.random().toString(16).substring(2, 10).toUpperCase();
-        const blockInfo = `<div>[BLOCK-${hash}] VERIFIED | POW_DIFF: 0.25</div>`;
-        stream.innerHTML = blockInfo + stream.innerHTML.substring(0, 500);
+        const hash = Math.random().toString(16).substring(2, 12).toUpperCase();
+        stream.innerHTML = `<div>[BLOCK-${hash}] VERIFIED | FEE_OK | POW_0.25</div>` + stream.innerHTML.substring(0, 400);
     }, 4000);
 }
 
 function logToViewer(msg) {
     const stream = document.getElementById('block-stream');
-    if(stream) {
-        stream.innerHTML = `<div style="color: #fff; font-weight: bold;">>>> ${msg}</div>` + stream.innerHTML;
-    }
-}
-
-// 8. SUCHE
-function handleMarketSearch(val) {
-    if(val.length > 2) logToViewer(`SEARCH: Market filter active for ${val.toUpperCase()}`);
-}
-
-function handleViewerSearch(val) {
-    if(val.length > 2) logToViewer(`SEARCH: Locating Hash ${val.toUpperCase()}`);
-}
-
-// 9. UI-SYNCHRONISATION
-function updateUI() {
-    const balanceDisplay = document.getElementById('balance');
-    if (balanceDisplay) balanceDisplay.innerText = `$ ${sovereignState.balance.toLocaleString('de-DE', {minimumFractionDigits: 2})}`;
-
-    const portfolioContainer = document.getElementById('portfolio-list');
-    if (portfolioContainer) {
-        portfolioContainer.innerHTML = sovereignState.transactions.map(tx => `
-            <div class="meta-balken" style="background: rgba(255,255,255,0.05); padding: 10px; margin: 5px 0; border-radius: 5px; border-left: 3px solid #00d4ff;">
-                <span>${tx.type}: ${tx.asset}</span>
-                <span style="float: right; color: #ffcc00; font-size: 10px;">${tx.status}</span>
-            </div>
-        `).join('');
-    }
+    stream.innerHTML = `<div style="color:#fff; font-weight:bold;">>>> ${msg}</div>` + stream.innerHTML;
 }
