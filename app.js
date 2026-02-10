@@ -1,26 +1,33 @@
-/* --- THE SOVEREIGN ENGINE (CORE LOGIC) --- */
+/* --- THE SOVEREIGN ENGINE (MASTER LOGIC) --- */
 
-// 1. STATE MANAGEMENT (Nur im RAM)
+// 1. STATE MANAGEMENT (RAM-Only)
 let sovereignState = {
     isLoggedIn: false,
     username: "",
-    walletAddress: "0x" + Math.random().toString(16).slice(2, 10) + "..." + Math.random().toString(16).slice(2, 6),
+    walletAddress: "0x" + Math.random().toString(16).slice(2, 10).toUpperCase(),
     balance: 0.00,
     currentAsset: "Crypto",
     transactions: [
-        { type: "SYSTEM", asset: "INIT", status: "Validated [PoW]", time: "Gerade eben" }
+        { type: "SYSTEM", asset: "INIT", status: "Validated [PoW]", time: "Genesis" }
     ]
 };
 
-// 2. INITIALISIERUNG
+// 2. INITIALISIERUNG & START
 document.addEventListener('DOMContentLoaded', () => {
-    console.log("Sovereign Engine gestartet... Kein Terminal erkannt.");
+    console.log("Sovereign Engine: Master-Protocol Active.");
     updateUI();
+    startBlockStream(); // Startet die Hintergrund-Matrix
+    
+    // Initialer Chart-Load (Bitcoin)
+    setTimeout(() => { switchAsset('Crypto'); }, 500);
+
+    // Event-Listener für die Suchleisten
+    document.getElementById('market-search').addEventListener('input', (e) => handleMarketSearch(e.target.value));
+    document.getElementById('viewer-search').addEventListener('input', (e) => handleViewerSearch(e.target.value));
 });
 
-// 3. NAVIGATION (STATISCHE SWITCHER)
+// 3. NAVIGATION & UI-SWITCHER
 function showPage(pageId) {
-    // Falls Wallet aufgerufen wird, aber kein Login besteht -> Umleitung zu Login
     if (pageId === 'wallet' && !sovereignState.isLoggedIn) {
         pageId = 'login';
     }
@@ -30,53 +37,67 @@ function showPage(pageId) {
     });
 
     const targetPage = document.getElementById(pageId);
-    if (targetPage) {
-        targetPage.classList.add('active');
-    }
+    if (targetPage) targetPage.classList.add('active');
 
-    // Zurück-Button Logik
     const backBtn = document.getElementById('back-btn');
     backBtn.style.display = (pageId === 'zentrale') ? 'none' : 'inline-block';
 }
 
-// 4. LOGIN & DOPPELTE VERANKERUNG
+// 4. LIVE-CHART LOGIK (TradingView Engine)
+function switchAsset(type) {
+    sovereignState.currentAsset = type;
+    let symbol = "BINANCE:BTCUSDT";
+
+    if(type === 'Aktien') symbol = "NASDAQ:AAPL";
+    if(type === 'Rohstoffe') symbol = "TVC:GOLD";
+    if(type === 'Forex') symbol = "FX:EURUSD";
+
+    new TradingView.widget({
+        "autosize": true,
+        "symbol": symbol,
+        "interval": "D",
+        "timezone": "Etc/UTC",
+        "theme": "dark",
+        "style": "1",
+        "locale": "de",
+        "enable_publishing": false,
+        "hide_top_toolbar": true,
+        "container_id": "tradingview_widget"
+    });
+
+    logToViewer(`MARKET-FEED: Switched to ${type} [${symbol}]`);
+}
+
+// 5. LOGIN & IDENTITÄTS-VERANKERUNG
 async function performLogin() {
-    const userIn = document.querySelector('input[placeholder="Benutzername erstellen"]').value;
-    const passIn = document.querySelector('input[placeholder="Passwort erstellen"]').value;
+    const userIn = document.querySelector('input[placeholder*="Benutzername"]').value;
+    const passIn = document.querySelector('input[placeholder*="Passwort"]').value;
 
     if (userIn.length < 3 || passIn.length < 3) {
-        alert("Bitte Benutzername und Passwort (min. 3 Zeichen) eingeben.");
+        alert("Zugangsdaten zu kurz für 256-bit Verankerung.");
         return;
     }
 
-    // Mathematische Verankerung (Simulation der Web Crypto Generierung)
     sovereignState.username = userIn;
     sovereignState.isLoggedIn = true;
-    sovereignState.balance = 1250.50; // Start-Guthaben (Demo-Modus bis P2P-Sync)
+    sovereignState.balance = 2500.75; // Demo-Saldo
 
-    // UI-Update
-    document.getElementById('sovereign-id').innerText = `ID: ${userIn.toUpperCase()}_0x${Math.random().toString(16).slice(2, 6)}`;
-    
-    // Protokoll-Eintrag im Viewer-Layer
-    const flow = document.getElementById('p2p-flow');
-    flow.innerText = `POW-STREAM: Identity anchored for ${userIn}... 0.25% Fee-Protocol active.`;
+    document.getElementById('sovereign-id').innerText = `ID: ${userIn.toUpperCase()}_${sovereignState.walletAddress.slice(0,6)}`;
+    document.getElementById('wallet-addr').innerText = sovereignState.walletAddress;
 
+    logToViewer(`IDENTITY: Anchored ${userIn.toUpperCase()} to ${sovereignState.walletAddress}`);
     showPage('wallet');
     updateUI();
 }
 
-// 5. TRADING LOGIK (MIT GEBÜHREN-ERZWUNGUNG)
+// 6. TRADING & GEBÜHREN (0.25% Erzwungen)
 function executeTrade(type) {
-    if (!sovereignState.isLoggedIn) {
-        showPage('login');
-        return;
-    }
+    if (!sovereignState.isLoggedIn) { showPage('login'); return; }
 
-    const fee = 0.0025; // 0,25%
-    const amount = 100; // Beispielbetrag
+    const fee = 0.0025;
+    const amount = 100.00;
     const feeAmount = amount * fee;
 
-    // Mathematische Logik im Ledger speichern
     const newTx = {
         type: type.toUpperCase(),
         asset: sovereignState.currentAsset,
@@ -85,44 +106,52 @@ function executeTrade(type) {
     };
 
     sovereignState.transactions.unshift(newTx);
-    sovereignState.balance -= feeAmount; // Gebühr wird mathematisch abgezogen
+    sovereignState.balance -= (amount + feeAmount);
 
-    alert(`${type} ausgeführt. Gebühr von ${feeAmount} an Betreiber-Wallet signiert.`);
+    logToViewer(`TX-POW: ${type.toUpperCase()} executed. Fee: ${feeAmount.toFixed(4)} deducted.`);
     updateUI();
 }
 
-// 6. UI SYNCHRONISATION
-function updateUI() {
-    // Saldo im Wallet
-    const balanceDisplay = document.getElementById('balance');
-    if (balanceDisplay) {
-        balanceDisplay.innerText = `$ ${sovereignState.balance.toLocaleString('de-DE', {minimumFractionDigits: 2})}`;
-    }
+// 7. VIEWER-MATRIX (BLOCK-STREAM)
+function startBlockStream() {
+    const stream = document.getElementById('block-stream');
+    setInterval(() => {
+        const hash = Math.random().toString(16).substring(2, 15);
+        const blockInfo = `<div>[BLOCK-${hash.toUpperCase()}] VERIFIED | FEE_SIG: OK | POW_DIFF: 0.25</div>`;
+        stream.innerHTML = blockInfo + stream.innerHTML.substring(0, 800);
+    }, 4000);
+}
 
-    // Portfolio-Liste (Meta-Balken)
-    const portfolioContainer = document.querySelector('#wallet div[style*="overflow-y: auto"]');
+function logToViewer(msg) {
+    const stream = document.getElementById('block-stream');
+    stream.innerHTML = `<div style="color: #fff; font-weight: bold;">>>> ${msg}</div>` + stream.innerHTML;
+}
+
+// 8. DOPPEL-SUCHE LOGIK
+function handleMarketSearch(val) {
+    // In einer echten Umgebung würde dies die TradingView Symbole filtern
+    if(val.length > 2) {
+        logToViewer(`SEARCH-MARKET: Filtering for ${val.toUpperCase()}...`);
+    }
+}
+
+function handleViewerSearch(val) {
+    // Filtert das Portfolio/Ledger im Viewer-Kontext
+    logToViewer(`SEARCH-BLOCKS: Locating Hash ${val}...`);
+}
+
+// 9. UI-SYNCHRONISATION
+function updateUI() {
+    const balanceDisplay = document.getElementById('balance');
+    if (balanceDisplay) balanceDisplay.innerText = `$ ${sovereignState.balance.toLocaleString('de-DE', {minimumFractionDigits: 2})}`;
+
+    const portfolioContainer = document.getElementById('portfolio-list');
     if (portfolioContainer) {
         portfolioContainer.innerHTML = sovereignState.transactions.map(tx => `
-            <div class="meta-balken" onclick="openViewer('${tx.type}')">
+            <div class="meta-balken" style="cursor:pointer;" onclick="logToViewer('TX-DETAILS: ${tx.asset} validated via PoW')">
                 <span>${tx.type}: ${tx.asset}</span>
-                <span style="color: var(--neon-gold); font-size: 10px;">${tx.status}</span>
+                <span style="color: #ffcc00; font-size: 10px;">${tx.status}</span>
             </div>
         `).join('');
     }
 }
-
-// 7. VIEWER LOGIK (SUCHE & DETAILS)
-function openViewer(txType) {
-    const viewerSearch = document.querySelector('.search-bar-viewer');
-    viewerSearch.value = `BLOCK-DETAIL: ${txType} - Fee 0.25% verified.`;
-    viewerSearch.style.borderColor = "var(--neon-gold)";
-    
-    // Minimiert die aktiven Fenster kurz, um den Viewer zu zeigen
-    document.querySelectorAll('.page-section').forEach(s => s.style.opacity = "0.3");
-    setTimeout(() => {
-        document.querySelectorAll('.page-section').forEach(s => s.style.opacity = "1");
-    }, 1500);
-}
-
-// Event-Listener an Buttons binden (da wir im HTML onclick nutzen, hier nur Ergänzungen)
-// Diese Funktion binden wir an den Login-Button im HTML (ersetze onclick="showPage('wallet')" durch onclick="performLogin()")
